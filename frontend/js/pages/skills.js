@@ -1,11 +1,9 @@
 import { icon } from '../components/icons.js';
-import { callout, empty, kpi, pageHeader, pill, toneFor } from '../components/kit.js';
+import { callout, empty, kpi, masteryLevel, pageHeader, pill, toneFor } from '../components/kit.js';
 import { shell } from '../components/layout.js';
 import { api } from '../core/api.js';
 import { html } from '../core/html.js';
 import { renderId } from '../core/view.js';
-
-const level = (p) => (p >= 85 ? 'Mastered' : p >= 70 ? 'Secure' : p >= 50 ? 'Focus area' : 'Priority');
 
 // A student's own mastery per topic, from every exam marked question by question.
 export async function skillsPage(token) {
@@ -34,9 +32,9 @@ export async function skillsPage(token) {
             ? html`<div class="stack">${subjects.map((subject) => html`<section class="card">
                 <div class="card-header"><div><h2>${subject}</h2></div></div>
                 <div class="card-body">${skills.filter((s) => s.subject === subject).map((s) => html`<div class="skill">
-                  <div><b>${s.topic}</b><span>${s.questions} question${s.questions === 1 ? '' : 's'} · ${level(s.masteryPct)}</span></div>
+                  <div><b>${s.topic}</b><span>${s.questions} question${s.questions === 1 ? '' : 's'} · ${masteryLevel(s.masteryPct)}</span></div>
                   <progress class="bar ${toneFor(s.masteryPct)}" max="100" value="${s.masteryPct}"></progress>
-                  <span class="pct">${s.masteryPct}%</span>
+                  <span class="pct ${toneFor(s.masteryPct)}">${s.masteryPct}%</span>
                 </div>`)}</div>
               </section>`)}</div>`
             : ''}

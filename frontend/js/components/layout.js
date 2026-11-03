@@ -55,7 +55,7 @@ export function shell(active, content, title, crumbs = []) {
           ${avatar(me.school.name, 'sm', 'sq')}
           <div class="grow"><div class="ws-name">${me.school.name}</div><div class="ws-sub">Workspace · ${me.school.code}</div></div>
         </div>
-        <button class="sb-search" type="button" data-palette>${icon('search')}Search or jump to…<kbd>Ctrl K</kbd></button>
+        <button class="sb-search" type="button" data-palette>${icon('search')}<span class="grow">Search</span><kbd>Ctrl K</kbd></button>
         <nav class="sb-nav">
           <p class="sb-label">${isStaff() ? 'Workspace' : 'Learning'}</p>
           ${navItems().map((n) => html`<a class="nav-item ${active === n.key ? 'active' : ''}" href="${n.href}" ${active === n.key ? new Safe('aria-current="page"') : ''}>
@@ -64,9 +64,6 @@ export function shell(active, content, title, crumbs = []) {
           <a class="nav-item ${active === 'account' ? 'active' : ''}" href="#/account">${icon('settings')}Settings</a>
         </nav>
         <div class="sb-foot">
-          ${isStaff()
-            ? html`<div class="promo"><b>Peer Bridge is live</b><p>Split exams into questions to unlock the Mistake Map and per-question peer matching.</p></div>`
-            : html`<div class="promo"><b>Peer Bridge</b><p>Lost marks on a question? We point you to a classmate’s answer that nailed it.</p></div>`}
           <button class="me-row" type="button" id="me-menu" aria-haspopup="menu">
             ${avatar(me.name)}
             <div class="who grow"><b>${me.name}</b><span>${roleLabel()}</span></div>
@@ -86,7 +83,6 @@ export function shell(active, content, title, crumbs = []) {
           <span class="spacer"></span>
           <button class="icon-btn" type="button" data-palette aria-label="Search">${icon('search')}</button>
           <button class="icon-btn" type="button" id="theme-toggle" aria-label="Toggle dark mode">${icon(currentTheme() === 'dark' ? 'sun' : 'moon')}</button>
-          ${isStaff() && html`<a class="btn primary sm hide-sm" href="#/exams/new">${icon('plus')}New exam</a>`}
         </header>
         <main class="page" tabindex="-1">${content}</main>
       </div>

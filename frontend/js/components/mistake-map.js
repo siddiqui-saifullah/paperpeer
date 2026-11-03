@@ -5,7 +5,7 @@ import { MISTAKES } from './kit.js';
 // The Mistake Map: for each question (or topic), how well the class did and which
 // kinds of mistakes cost them marks. Colours come from classes, never inline styles.
 
-export const heatClass = (p) => (p === null ? 'none' : p < 40 ? 'h0' : p < 55 ? 'h1' : p < 70 ? 'h2' : p < 85 ? 'h3' : 'h4');
+export const heatClass = (p) => (p === null ? 'none' : p < 50 ? 'h0' : p < 60 ? 'h1' : p < 70 ? 'h2' : p < 85 ? 'h3' : 'h4');
 const level = (count, total) => {
   if (!count || !total) return 'l0';
   const share = count / total;
@@ -29,8 +29,8 @@ export const mistakeMatrix = (rows, scoreLabel = 'Avg score') => html`
     </table>
   </div>
   <div class="legend gap-above">
-    <span><i class="sw h0"></i>Below 40%</span><span><i class="sw h2"></i>55–70%</span><span><i class="sw h4"></i>85%+</span>
-    <span>Mistake cells darken as more of the class makes that mistake.</span>
+    <span><i class="sw h0"></i>Below 50%</span><span><i class="sw h2"></i>50–69%</span><span><i class="sw h3"></i>70–84%</span><span><i class="sw h4"></i>85%+</span>
+    <span class="legend-note">Darker mistake cells mean more of the class made that mistake.</span>
   </div>`;
 
 // Average score per question as a bar chart.

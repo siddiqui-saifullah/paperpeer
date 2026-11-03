@@ -44,16 +44,15 @@ export async function insightsPage(token) {
       ? html`
         <div class="kpis">
           ${kpi({ label: 'Topics tracked', value: shown.length, foot: `${answers} question answers analysed`, iconName: 'layers' })}
-          ${kpi({ label: 'Weakest topic', value: weakest ? weakest.topic : '–', foot: weakest ? `${weakest.masteryPct}% mastery · ${weakest.className}` : '', footTone: 'down', iconName: 'target' })}
-          ${kpi({ label: 'Top mistake', value: totals[0]?.[1] ? MISTAKES[totals[0][0]].label : '–', foot: totals[0]?.[1] ? `${totals[0][1]} times` : 'None tagged yet', iconName: 'alert' })}
+          ${kpi({ label: 'Weakest topic', text: !!weakest, value: weakest ? weakest.topic : '–', foot: weakest ? `${weakest.masteryPct}% mastery · ${weakest.className}` : '', footTone: 'down', iconName: 'target' })}
+          ${kpi({ label: 'Top mistake', text: !!totals[0]?.[1], value: totals[0]?.[1] ? MISTAKES[totals[0][0]].label : '–', foot: totals[0]?.[1] ? `${totals[0][1]} times` : 'None tagged yet', iconName: 'alert' })}
           ${kpi({ label: 'Students to check in on', value: watchlist.length, foot: 'Average below 60%', footTone: watchlist.length ? 'down' : 'up', iconName: 'people' })}
         </div>
-        <div class="grid main-side">
-          <section class="card">
-            <div class="card-header"><div><h2>Topic × mistake</h2><p>Weakest topics first. Hover a cell for counts.</p></div></div>
+        <section class="card gap-below">
+            <div class="card-header"><div><h2>Topic × mistake</h2><p>Weakest topics first. Each cell counts answers that lost marks for that reason.</p></div></div>
             <div class="card-body">${mistakeMatrix(shown.map((t) => ({ title: t.topic, sub: `${t.subject} · ${t.className}`, scorePct: t.masteryPct, total: t.answers, mistakes: t.mistakes })), 'Mastery')}</div>
-          </section>
-          <div class="stack">
+        </section>
+        <div class="grid cols-2">
             <section class="card">
               <div class="card-header"><div><h2>What to do next</h2><p>Generated from the map</p></div>${icon('spark')}</div>
               <div class="card-body">${takeaways.length ? insightList(takeaways) : html`<p class="muted small">Keep marking by question to see recommendations.</p>`}</div>
@@ -68,7 +67,6 @@ export async function insightsPage(token) {
                   </div>`)}</div>`
                 : html`<div class="card-body"><p class="small muted">No one is below 60%.</p></div>`}
             </section>
-          </div>
         </div>`
       : html`<section class="card">${empty({
           iconName: 'map',
