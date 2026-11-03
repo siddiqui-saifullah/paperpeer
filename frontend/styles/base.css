@@ -1,0 +1,65 @@
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.5 var(--sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.015em; line-height: 1.25; }
+h1 { font-size: 1.6rem; letter-spacing: -0.025em; }
+h2 { font-size: 1.05rem; }
+h3 { font-size: .95rem; }
+h4 { font-size: .85rem; }
+p { margin: 0; }
+a { color: var(--brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, kbd { font-family: var(--mono); font-size: .85em; }
+code { background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; }
+kbd { border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; color: var(--muted); background: var(--surface); font-size: .72rem; }
+img { max-width: 100%; }
+::selection { background: var(--brand-soft); }
+
+.muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.small { font-size: .85rem; }
+.tiny { font-size: .75rem; }
+.mono { font-family: var(--mono); }
+.num { font-variant-numeric: tabular-nums; }
+.hidden { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.row.end { justify-content: flex-end; }
+.row.top { align-items: flex-start; }
+.row.nowrap { flex-wrap: nowrap; }
+.grow { flex: 1; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.stack.tight { gap: 8px; }
+.stack.loose { gap: 24px; }
+.gap-above { margin-top: 12px; }
+.gap-below { margin-bottom: 12px; }
+
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* A thin bar at the top while a page loads. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0 100% auto 0;
+  height: 2px;
+  background: var(--brand);
+  z-index: 100;
+}
+body.loading::before { animation: load 1.2s ease-out forwards; }
+@keyframes load { to { right: 12%; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

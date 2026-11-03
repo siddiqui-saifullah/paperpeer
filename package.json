@@ -1,0 +1,13 @@
+{
+  "name": "paperpeer",
+  "private": true,
+  "type": "module",
+  "workspaces": ["backend", "frontend"],
+  "scripts": {
+    "start": "node scripts/dev.js",
+    "dev": "node scripts/dev.js --watch",
+    "seed": "npm run seed -w backend",
+    "db:reset": "npm run db:reset -w backend",
+    "test": "npm test -w backend"
+  }
+}
