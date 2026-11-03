@@ -22,9 +22,11 @@ export const config = {
   serverless,
   databaseUrl,
   poolMax: Number(process.env.DB_POOL_MAX || (serverless ? 1 : 10)),
-  // 'disk' keeps uploads in dataDir; 'db' keeps them in Postgres. A hosted
-  // database defaults to 'db', so every machine using it sees the same files.
-  storage: process.env.STORAGE || (databaseUrl ? 'db' : 'disk'),
+  // Where uploaded files go: 'cloudinary' (needs CLOUDINARY_URL), 'db' (Postgres)
+  // or 'disk' (dataDir). Shared storage is the default whenever it is set up,
+  // so every machine using the same database sees the same files.
+  storage: process.env.STORAGE || (process.env.CLOUDINARY_URL ? 'cloudinary' : databaseUrl ? 'db' : 'disk'),
+  cloudinary: { url: process.env.CLOUDINARY_URL || '', apiBase: process.env.CLOUDINARY_API_BASE || undefined },
   // Serverless functions can only write to the system temp folder.
   dataDir: path.resolve(process.env.DATA_DIR || (serverless ? path.join(os.tmpdir(), 'paperpeer') : path.join(projectRoot, 'data'))),
   // The frontend has its own server on its own port. Set SERVE_FRONTEND=1 to serve

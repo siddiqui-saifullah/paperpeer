@@ -5,13 +5,16 @@ import path from 'node:path';
 import { after, before, test } from 'node:test';
 import { openDb } from '../src/db/index.js';
 import { createApp } from '../src/app.js';
+import { startFakeCloudinary } from './fake-cloudinary.js';
 
 const PDF = Buffer.from('%PDF-1.4\n%test\n');
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
 let server, base, dataDir, db;
-// TEST_STORAGE=db runs the suite with files kept in Postgres, as on Vercel.
+// TEST_STORAGE=db keeps files in Postgres; TEST_STORAGE=cloudinary sends them to
+// a local fake of Cloudinary's API.
 const storage = process.env.TEST_STORAGE || 'disk';
+let cloud;
 
 class Client {
   cookie = '';
@@ -121,7 +124,8 @@ let one, two;
 before(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paperpeer-test-'));
   db = await openDb({ dataDir, databaseUrl: process.env.TEST_DATABASE_URL, poolMax: Number(process.env.TEST_POOL_MAX || 5) });
-  const app = createApp({ db, dataDir, storage });
+  if (storage === 'cloudinary') cloud = await startFakeCloudinary();
+  const app = createApp({ db, dataDir, storage, cloudinary: cloud?.config });
   await new Promise((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
@@ -134,6 +138,7 @@ after(async () => {
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));
   await db.close();
+  await cloud?.close();
   fs.rmSync(dataDir, { recursive: true, force: true });
 });
 
@@ -405,9 +410,11 @@ test('deleting an exam removes its stored files', async () => {
   await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'paper.pdf', PDF);
   const row = await db.prepare('SELECT id, stored_name, school_id FROM files WHERE exam_id = ?').get(examId);
   const file = path.join(dataDir, 'uploads', String(row.school_id), row.stored_name);
-  const stored = async () => storage === 'db'
-    ? Boolean(await db.prepare('SELECT 1 FROM file_blobs WHERE stored_name = ?').get(row.stored_name))
-    : fs.existsSync(file);
+  const stored = async () => {
+    if (storage === 'cloudinary') return cloud.files.has(`paperpeer/${row.school_id}/${row.stored_name}`);
+    if (storage === 'db') return Boolean(await db.prepare('SELECT 1 FROM file_blobs WHERE stored_name = ?').get(row.stored_name));
+    return fs.existsSync(file);
+  };
   assert.ok(await stored());
   const served = await two.teacher.get(`/api/files/${row.id}`);
   assert.equal(served.status, 200, 'the stored file is served back');

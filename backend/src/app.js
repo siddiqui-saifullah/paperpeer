@@ -13,14 +13,14 @@ import { errorHandler } from './middleware/error-handler.js';
 import { securityHeaders } from './middleware/security.js';
 
 // Wires the app together. Each feature lives in src/modules/<feature>.
-export function createApp({ db, dataDir, storage = 'disk', serverless = false, frontendDir, secureCookies = false, trustProxy = false }) {
+export function createApp({ db, dataDir, storage = 'disk', cloudinary, serverless = false, frontendDir, secureCookies = false, trustProxy = false }) {
   const app = express();
   app.disable('x-powered-by');
   if (trustProxy) app.set('trust proxy', 1);
   app.use(securityHeaders({ secureCookies }));
 
   const session = sessionStore(db, { secureCookies });
-  const store = fileStore({ dataDir, mode: storage, db, maxFileMb: serverless ? 4 : 15 });
+  const store = fileStore({ dataDir, mode: storage, db, cloudinary, maxFileMb: serverless ? 4 : 15 });
 
   const api = express.Router();
   api.use(requireApiHeader);

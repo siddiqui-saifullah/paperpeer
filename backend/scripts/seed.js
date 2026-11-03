@@ -6,7 +6,7 @@ import { hashPassword, randomId } from '../src/lib/crypto.js';
 import { fileStore } from '../src/lib/storage.js';
 
 const db = await openDb(config);
-const store = fileStore({ dataDir: config.dataDir, mode: config.storage, db });
+const store = fileStore({ dataDir: config.dataDir, mode: config.storage, db, cloudinary: config.cloudinary });
 const PASSWORD = 'demo1234';
 
 function pdf(lines) {

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import multer from 'multer';
+import { cloudinaryClient, parseCloudinaryUrl } from './cloudinary.js';
 import { randomId } from './crypto.js';
 import { HttpError, badRequest } from './http.js';
 
@@ -53,9 +54,26 @@ function databaseBackend(db) {
   };
 }
 
+// Cloudinary's free plan has far more room than the database. Files are private:
+// only this backend can fetch them, after checking who is asking.
+function cloudinaryBackend({ url, apiBase }) {
+  const client = cloudinaryClient({ ...parseCloudinaryUrl(url), apiBase });
+  const publicId = (schoolId, storedName) => `paperpeer/${Number(schoolId)}/${path.basename(storedName)}`;
+  return {
+    write: (schoolId, storedName, buffer) => client.upload(publicId(schoolId, storedName), buffer),
+    read: (schoolId, storedName) => client.download(publicId(schoolId, storedName)),
+    // A failed delete leaves an orphan in Cloudinary, never a broken page.
+    remove: (schoolId, storedName) =>
+      client.destroy(publicId(schoolId, storedName)).catch((err) => console.error(err.message)),
+  };
+}
+
 // maxFileMb: Vercel refuses request bodies over 4.5 MB, so serverless uses 4.
-export function fileStore({ dataDir, mode = 'disk', db, maxFileMb = 15 }) {
-  const backend = mode === 'db' ? databaseBackend(db) : diskBackend(dataDir);
+export function fileStore({ dataDir, mode = 'disk', db, cloudinary, maxFileMb = 15 }) {
+  const backend =
+    mode === 'cloudinary' ? cloudinaryBackend(cloudinary)
+    : mode === 'db' ? databaseBackend(db)
+    : diskBackend(dataDir);
   // Uploads land here first, whichever backend keeps them.
   const tmpDir = path.join(dataDir, 'uploads', 'tmp');
   fs.mkdirSync(tmpDir, { recursive: true });

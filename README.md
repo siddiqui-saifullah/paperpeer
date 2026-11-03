@@ -43,7 +43,7 @@ To use [Neon](https://neon.tech) (free tier):
 2. Copy `.env.example` to `.env` and paste the string after `DATABASE_URL=`.
 3. Run `npm start`. The tables are created automatically.
 
-Embedded data is not copied to Neon. With a `DATABASE_URL` set, uploaded files are stored in Postgres too (table `file_blobs`), so every server using that database sees the same files. Set `STORAGE=disk` to keep them in `DATA_DIR` instead.
+Embedded data is not copied to Neon. Uploaded files go to Cloudinary when `CLOUDINARY_URL` is set. Otherwise, with a `DATABASE_URL` they are stored in Postgres (table `file_blobs`), so every server using that database sees the same files. Set `STORAGE=disk` to keep them in `DATA_DIR` instead.
 
 ## How it works
 
@@ -131,33 +131,39 @@ Rules that protect students live in one place each: `exams/exam-access.js` decid
 
 ## Deploy on Vercel (free)
 
-Frontend and backend are two separate Vercel projects from this one repository. Neon holds the data and the uploaded files.
+Frontend and backend are two separate Vercel projects from this one repository. Neon holds the data; Cloudinary holds uploaded PDFs and photos.
 
 ```
-browser ──▶ paperpeer (frontend, static) ──/api/*──▶ paperpeer-api (backend, serverless) ──▶ Neon Postgres
+browser ─▶ paperpeer (frontend, static)
+              │  /api/*
+              ▼
+           paperpeer-api (backend, serverless) ─┬─▶ Neon Postgres (data)
+                                                └─▶ Cloudinary (files, private)
 ```
 
 The frontend forwards `/api/*` to the backend, so the browser sees one site: login cookies and the security policy work without CORS.
 
 **1. Database.** Create a free project at [neon.tech](https://neon.tech). Copy the **pooled** connection string (its host contains `-pooler`).
 
-**2. Backend project.** On Vercel: *Add New → Project*, import this repository.
+**2. File storage.** Create a free account at [cloudinary.com](https://cloudinary.com). On the dashboard, copy the **API environment variable**: it looks like `cloudinary://<key>:<secret>@<cloud_name>`. Files are uploaded as private assets: nobody can open one from a link; the backend fetches it only after checking the viewer may see it.
+
+**3. Backend project.** On Vercel: *Add New → Project*, import this repository.
 - Project name: `paperpeer-api`
 - Root Directory: `backend`
-- Environment variable: `DATABASE_URL` = the Neon string
+- Environment variables: `DATABASE_URL` = the Neon string, `CLOUDINARY_URL` = the Cloudinary string
 - Deploy. Tables are created on the first request. Check `https://paperpeer-api.vercel.app/api/me` returns `{"error":...}` JSON (401 is correct: not logged in).
 
-**3. Frontend project.** Import the same repository again.
+**4. Frontend project.** Import the same repository again.
 - Project name: `paperpeer`
 - Root Directory: `frontend`
 - No environment variables. If the backend got a different address than `paperpeer-api.vercel.app`, edit the `destination` in `frontend/vercel.json` first.
 - Deploy, then open `https://paperpeer.vercel.app`.
 
-**4. Demo data (optional).** From your computer: `DATABASE_URL="<neon string>" npm run seed`. Never run it on a database with real schools.
+**5. Demo data (optional).** From your computer: `DATABASE_URL="<neon string>" CLOUDINARY_URL="<cloudinary string>" npm run seed`. Never run it on a database with real schools.
 
 Pushing to the repository redeploys both projects.
 
-**Limits on the free setup.** Each upload request must be under 4.5 MB, so the app sends files in batches and refuses single files over 4 MB (phone photos are shrunk first, so this mostly affects large PDFs). Neon's free tier has 0.5 GB, roughly 500 to 1,000 photographed answer pages. When that gets tight, move file bytes to object storage such as Cloudflare R2 or Vercel Blob; only `src/lib/storage.js` changes. The first request after a quiet spell takes a second or two while Vercel and Neon wake up.
+**Limits on the free setup.** Each upload request must be under 4.5 MB, so the app sends files in batches and refuses single files over 4 MB (phone photos are shrunk first, so this mostly affects large PDFs). Cloudinary's free plan has about 25 GB of storage and bandwidth combined per month; Neon's 0.5 GB then only holds data, which is plenty. The first request after a quiet spell takes a second or two while Vercel and Neon wake up.
 
 ## Going live
 
@@ -173,7 +179,8 @@ Set these environment variables:
 | `DATABASE_URL` | Postgres connection string. Required for a live deployment. |
 | `DB_POOL_MAX` | Database connections per server process. Default `10`. |
 | `DATA_DIR` | Where uploads live, plus the embedded database if `DATABASE_URL` is empty. Default `./data`. |
-| `STORAGE` | `db` keeps uploaded files in Postgres, `disk` in `DATA_DIR`. Default `db` when `DATABASE_URL` is set. |
+| `CLOUDINARY_URL` | `cloudinary://<key>:<secret>@<cloud_name>`. When set, uploaded files go to Cloudinary as private files. |
+| `STORAGE` | `cloudinary`, `db` (Postgres) or `disk` (`DATA_DIR`). Default: `cloudinary` if `CLOUDINARY_URL` is set, else `db` if `DATABASE_URL` is set, else `disk`. |
 | `TRUST_PROXY=1` | Set when running behind one reverse proxy, so login limits see real client addresses. |
 
 Back up `DATA_DIR`, since it holds every uploaded file. The host's disk must survive restarts and deploys, which many free hosts do not offer. To run several servers, move uploads to shared file storage and the in-memory login limiter to a shared store.
