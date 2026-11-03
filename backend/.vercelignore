@@ -1,0 +1,3 @@
+# Not needed by the serverless function.
+test/
+data/

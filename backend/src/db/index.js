@@ -125,14 +125,18 @@ export const tx = (db, fn) => db.transaction(fn);
 
 // Applies db/migrations/*.sql in filename order. To change the schema, add a new
 // numbered file; never edit one that has already shipped.
+// Serverless hosts can start several instances at once; the advisory lock makes
+// them take turns, and each re-reads what is done after it gets the lock.
+const MIGRATION_LOCK = 72_411_903;
 async function migrate(db) {
-  await db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');
-  const done = new Set((await db.prepare('SELECT name FROM schema_migrations').all()).map((r) => r.name));
   const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
-  for (const file of files.filter((f) => !done.has(f))) {
-    await tx(db, async () => {
+  await tx(db, async () => {
+    await db.prepare('SELECT pg_advisory_xact_lock(?)').get(MIGRATION_LOCK);
+    await db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');
+    const done = new Set((await db.prepare('SELECT name FROM schema_migrations').all()).map((r) => r.name));
+    for (const file of files.filter((f) => !done.has(f))) {
       await db.exec(fs.readFileSync(path.join(migrationsDir, file), 'utf8'));
       await db.prepare('INSERT INTO schema_migrations (name) VALUES (?)').run(file);
-    });
-  }
+    }
+  });
 }

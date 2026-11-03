@@ -13,17 +13,17 @@ export function fileRoutes({ db, store }) {
     res.status(201).json({ files: await service.addExamFiles(exam, req.query.kind, uploads) });
   });
 
-  router.get('/files/:fileId', requireUser, async (req, res, next) => {
+  router.get('/files/:fileId', requireUser, async (req, res) => {
     const { file, filename } = await service.readable(req.user, req.params.fileId);
+    const bytes = await store.read(file.school_id, file.stored_name);
+    if (!bytes) throw notFound('This file is no longer available.');
     const disposition = req.query.download === '1' ? 'attachment' : 'inline';
     res.set({
       'Content-Type': file.mime,
       'Content-Disposition': `${disposition}; filename*=UTF-8''${encodeURIComponent(filename)}`,
       'Cache-Control': 'private, no-store',
     });
-    res.sendFile(file.stored_name, { root: store.dir(file.school_id), cacheControl: false, etag: false }, (err) => {
-      if (err && !res.headersSent) next(notFound('This file is no longer available.'));
-    });
+    res.send(bytes);
   });
 
   router.delete('/files/:fileId', requireUser, async (req, res) => {

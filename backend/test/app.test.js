@@ -10,6 +10,8 @@ const PDF = Buffer.from('%PDF-1.4\n%test\n');
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
 let server, base, dataDir, db;
+// TEST_STORAGE=db runs the suite with files kept in Postgres, as on Vercel.
+const storage = process.env.TEST_STORAGE || 'disk';
 
 class Client {
   cookie = '';
@@ -119,7 +121,7 @@ let one, two;
 before(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paperpeer-test-'));
   db = await openDb({ dataDir, databaseUrl: process.env.TEST_DATABASE_URL, poolMax: Number(process.env.TEST_POOL_MAX || 5) });
-  const app = createApp({ db, dataDir });
+  const app = createApp({ db, dataDir, storage });
   await new Promise((resolve) => {
     server = app.listen(0, '127.0.0.1', resolve);
   });
@@ -398,14 +400,19 @@ test('repeated failed logins are blocked', async () => {
   assert.equal((await attempt()).status, 429);
 });
 
-test('deleting an exam removes its files from disk', async () => {
+test('deleting an exam removes its stored files', async () => {
   const examId = await createExam(two, { title: 'To delete' });
   await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'paper.pdf', PDF);
-  const row = await db.prepare('SELECT stored_name, school_id FROM files WHERE exam_id = ?').get(examId);
+  const row = await db.prepare('SELECT id, stored_name, school_id FROM files WHERE exam_id = ?').get(examId);
   const file = path.join(dataDir, 'uploads', String(row.school_id), row.stored_name);
-  assert.ok(fs.existsSync(file));
+  const stored = async () => storage === 'db'
+    ? Boolean(await db.prepare('SELECT 1 FROM file_blobs WHERE stored_name = ?').get(row.stored_name))
+    : fs.existsSync(file);
+  assert.ok(await stored());
+  const served = await two.teacher.get(`/api/files/${row.id}`);
+  assert.equal(served.status, 200, 'the stored file is served back');
   assert.equal((await two.teacher.delete(`/api/exams/${examId}`)).status, 200);
-  assert.ok(!fs.existsSync(file));
+  assert.ok(!(await stored()));
 });
 
 test('question scoring feeds the mistake map, skills and peer bridge without leaking names', async () => {
