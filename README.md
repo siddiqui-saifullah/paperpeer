@@ -88,28 +88,32 @@ Peer Bridge only appears when names are hidden and marks are released, so it nev
 The frontend and backend are separate folders on separate ports, and they talk only through the JSON API at `/api`.
 
 ```text
-frontend/                    Browser app: plain ES modules, no build step
-  server.js                  Serves these files, passes /api to the backend
+frontend/                    React + TypeScript, built with Vite
   index.html
+  vite.config.ts             Dev server; forwards /api to the backend
   styles/                    tokens, base, components, responsive
-  js/
-    main.js                  Starts the app
-    router.js                URL to page table
-    core/                    html, api client, session, ui helpers
-    components/              Pieces shared by pages: layout, files, exam row
+  src/
+    main.tsx                 Starts the app
+    App.tsx                  URL to page table, sign-in gate
+    lib/                     API client and types, formatting, photos, theme
+    context/                 Session, toasts, confirm dialog
+    hooks/                   useApi / useLoad (data), useAct (actions)
+    components/              Shell, kit, forms, files, Mistake Map, palette
     pages/                   One file per screen
 
-backend/
+backend/                     TypeScript (strict), Express
+  api/index.js               Vercel entry: loads the compiled dist/src/vercel.js
   src/
-    server.js                Starts the server
-    app.js                   Wires everything together
-    config.js                All environment settings
+    server.ts                Starts the server
+    app.ts                   Wires everything together
+    config.ts                All environment settings
+    types.ts                 Shared types: database, session user, rows
     db/                      Postgres connection, plus numbered SQL migrations
-    lib/                     Generic helpers: crypto, storage, validation
+    lib/                     Generic helpers: crypto, storage, Cloudinary, validation
     middleware/              Login guards, CSRF, security headers, errors
     modules/                 One folder per feature
       auth/ people/ exams/ submissions/ files/ questions/
-  scripts/seed.js            Demo data
+  scripts/seed.ts            Demo data
   test/                      API tests
 ```
 
@@ -117,17 +121,18 @@ Each backend feature has the same three layers:
 
 | File | Job | Must not |
 | --- | --- | --- |
-| `x.routes.js` | Read the request, send the response | Hold rules or SQL |
-| `x.service.js` | Rules and permissions | Touch `req` or `res` |
-| `x.repo.js` | SQL queries | Decide anything |
+| `x.routes.ts` | Read the request, send the response | Hold rules or SQL |
+| `x.service.ts` | Rules and permissions | Touch `req` or `res` |
+| `x.repo.ts` | SQL queries | Decide anything |
 
-Rules that protect students live in one place each: `exams/exam-access.js` decides who can see an exam, and `files/files.service.js` decides who can read a file.
+Rules that protect students live in one place each: `exams/exam-access.ts` decides who can see an exam, and `files/files.service.ts` decides who can read a file.
 
 ### Adding a feature
 
-- **Backend:** add `modules/<feature>/` with the three files, then register its routes in `src/app.js`. Every query takes `school_id` from the logged-in user.
+- **Backend:** add `modules/<feature>/` with the three files, then register its routes in `src/app.ts`. Every query takes `school_id` from the logged-in user.
 - **Database:** add the next numbered file in `db/migrations/`. Never edit one that has already run.
-- **Frontend:** add a file in `js/pages/`, then one line in the table in `js/router.js`.
+- **Frontend:** add a component in `src/pages/`, then one `<Route>` in `src/App.tsx`. API shapes live in `src/lib/types.ts`.
+- **Checks:** `npm run typecheck -w backend`, `npm run typecheck -w frontend`, `npm test`.
 
 ## Deploy on Vercel (free)
 
@@ -175,9 +180,9 @@ Set these environment variables:
 | --- | --- |
 | `NODE_ENV=production` | Secure cookies and HSTS. Requires HTTPS. |
 | `PORT` | Backend port. Default `3000`. |
-| `SERVE_FRONTEND=1` | Serve the frontend from the backend, so one server and one port are enough. |
-| `FRONTEND_PORT` | Port of the separate frontend server. Default `5173`. |
-| `BACKEND_URL` | Where that frontend server finds the backend. Default `http://127.0.0.1:3000`. |
+| `SERVE_FRONTEND=1` | Serve the built frontend (`frontend/dist`, after `npm run build -w frontend`) from the backend, so one server and one port are enough. |
+| `FRONTEND_PORT` | Port of the Vite dev server. Default `5173`. |
+| `BACKEND_URL` | Where the Vite dev server finds the backend. Default `http://127.0.0.1:3000`. |
 | `DATABASE_URL` | Postgres connection string. Required for a live deployment. |
 | `DB_DRIVER` | `neon` (HTTP + WebSocket) or `pg` (TCP). Default: `neon` for `neon.tech` hosts, `pg` otherwise. |
 | `DB_POOL_MAX` | Database connections per server process. Default `10`. |

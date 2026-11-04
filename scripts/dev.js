@@ -9,7 +9,7 @@ const watch = process.argv.includes('--watch') ? ['--watch'] : [];
 const start = (folder, args) =>
   spawn(process.execPath, args, { cwd: path.join(root, folder), stdio: 'inherit' });
 
-const children = [start('backend', [...watch, '--import', 'tsx', 'src/server.ts']), start('frontend', ['server.js'])];
+const children = [start('backend', [...watch, '--import', 'tsx', 'src/server.ts']), start('frontend', [path.join(root, 'node_modules', 'vite', 'bin', 'vite.js')])];
 
 children.forEach((child) =>
   child.on('exit', (code) => {
