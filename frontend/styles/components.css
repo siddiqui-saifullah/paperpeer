@@ -21,6 +21,11 @@ svg[aria-hidden] { width: 1.1em; height: 1.1em; vertical-align: -0.17em; flex: n
 }
 .sb-brand { display: flex; align-items: center; gap: 9px; padding: 4px 6px; color: var(--ink); font-weight: 650; font-size: 1rem; letter-spacing: -0.02em; }
 .sb-brand:hover { text-decoration: none; }
+.wm-paper { color: var(--wm-paper); }
+.wm-peer { color: var(--wm-peer); }
+/* The sign-in panel is always dark, so it uses the dark-theme shades. */
+.auth-art .wm-paper { color: #60a5fa; }
+.auth-art .wm-peer { color: #fb7185; }
 .logo { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #6366f1, #8b5cf6 55%, #ec4899); color: #fff; }
 .logo svg { width: 16px; height: 16px; }
 

@@ -50,7 +50,7 @@ export function shell(active, content, title, crumbs = []) {
   root.innerHTML = html`
     <div class="app">
       <aside class="sidebar" aria-label="Main">
-        <a class="sb-brand" href="#/"><span class="logo">${icon('logo')}</span>PaperPeer</a>
+        <a class="sb-brand" href="#/"><span class="logo">${icon('logo')}</span><span class="wordmark"><span class="wm-paper">Paper</span><span class="wm-peer">Peer</span></span></a>
         <div class="workspace">
           ${avatar(me.school.name, 'sm', 'sq')}
           <div class="grow"><div class="ws-name">${me.school.name}</div><div class="ws-sub">Workspace · ${me.school.code}</div></div>
