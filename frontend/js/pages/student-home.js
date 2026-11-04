@@ -1,5 +1,5 @@
 import { icon } from '../components/icons.js';
-import { barCell, callout, empty, kpi, pageHeader, pill, subjectIcon, toneFor } from '../components/kit.js';
+import { callout, empty, kpi, pageHeader, pill, subjectIcon, toneFor, topicRow } from '../components/kit.js';
 import { shell } from '../components/layout.js';
 import { html } from '../core/html.js';
 import { me } from '../core/session.js';
@@ -37,7 +37,7 @@ export function progressChart(exams) {
             <rect class="hit" x="${x(i) - 24}" y="0" width="48" height="${h}"></rect>
             <circle class="cls" cx="${x(i)}" cy="${y(p.cls)}" r="3.5"></circle>
             <circle class="you" cx="${x(i)}" cy="${y(p.you)}" r="4.5"></circle>
-            <text class="axis" x="${x(i)}" y="${h - 8}" text-anchor="middle">${p.title.length > 14 ? `${p.title.slice(0, 13)}…` : p.title}</text>
+            <text class="axis" x="${x(i)}" y="${h - 8}" text-anchor="${i === 0 ? 'start' : i === points.length - 1 ? 'end' : 'middle'}">${p.title.length > 14 ? `${p.title.slice(0, 13)}…` : p.title}</text>
           </g>`)}
       </svg>
     </div>
@@ -72,7 +72,7 @@ export function studentDashboard(exams, skills) {
     <div class="kpis">
       ${kpi({ label: 'Your average', value: avg === null ? '–' : `${avg}%`, foot: `${results.length} exam${results.length === 1 ? '' : 's'} with results`, iconName: 'trend' })}
       ${kpi({ label: 'Versus class', value: gap === null ? '–' : `${gap > 0 ? '+' : ''}${gap}`, unit: gap === null ? '' : 'pts', foot: gap === null ? 'Needs released marks' : gap >= 0 ? 'Above class average' : 'Below class average', footTone: gap === null ? '' : gap >= 0 ? 'up' : 'down', iconName: 'people' })}
-      ${kpi({ label: 'Strongest topic', value: strongest ? strongest.topic : '–', foot: strongest ? `${strongest.masteryPct}% mastery` : 'Appears after marking', iconName: 'star' })}
+      ${kpi({ label: 'Strongest topic', text: !!strongest, value: strongest ? strongest.topic : '–', foot: strongest ? `${strongest.masteryPct}% mastery` : 'Appears after marking', iconName: 'star' })}
       ${kpi({ label: 'To upload', value: todo.length, foot: todo.length ? 'Before your teacher closes uploads' : 'Nothing pending', footTone: todo.length ? 'down' : 'up', iconName: 'upload' })}
     </div>
 
@@ -109,15 +109,11 @@ export function studentDashboard(exams, skills) {
           <div class="card-header"><div><h2>Focus next</h2><p>Your weakest topics</p></div>${icon('target')}</div>
           <div class="card-body">
             ${focus.length
-              ? html`<div class="stack tight">${focus.map((t) => html`<div>
-                  <div class="row between"><b class="small">${t.topic}</b><span class="tiny muted">${t.subject}</span></div>
-                  ${barCell(t.masteryPct, 100, `${t.masteryPct}%`, toneFor(t.masteryPct))}
-                </div>`)}</div>
+              ? html`<div class="stack">${focus.map((t) => topicRow(t.topic, t.masteryPct, t.subject))}</div>
                 <a class="btn sm block gap-above" href="#/skills">Open Skill Map</a>`
               : callout('brand', 'spark', 'Your Skill Map is on its way', 'It fills in once your teacher marks an exam question by question.')}
           </div>
         </section>
-        ${callout('brand', 'bridge', 'Peer Bridge', 'On each result, we match every question you lost marks on to a classmate’s answer that got it fully right.')}
       </div>
     </div>`, 'Home');
 }

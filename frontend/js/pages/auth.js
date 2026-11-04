@@ -17,7 +17,7 @@ function authLayout(content) {
   root.innerHTML = html`
     <div class="auth">
       <section class="auth-art">
-        <a class="sb-brand" href="#/login"><span class="logo">${icon('logo')}</span>PaperPeer</a>
+        <a class="sb-brand" href="#/login"><span class="logo">${icon('logo')}</span><span class="wordmark"><span class="wm-paper">Paper</span><span class="wm-peer">Peer</span></span></a>
         <div>
           <h1>Every exam already holds the lesson. <em>We find it.</em></h1>
           <p class="lead">PaperPeer turns marked papers into a map of what each class is missing, and connects every student to the classmate who got it right.</p>

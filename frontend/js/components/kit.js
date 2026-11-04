@@ -14,7 +14,10 @@ export const subjectIcon = (subject) =>
 
 export const pill = (text, tone = '') => html`<span class="pill ${tone}">${text}</span>`;
 
-export const toneFor = (pct) => (pct === null || pct === undefined ? '' : pct >= 75 ? 'good' : pct >= 50 ? 'warn' : 'bad');
+// One scale for every score in the app, so a colour always means the same thing:
+// 70%+ is on track (green), 50–69% needs work (amber), below 50% is a priority (red).
+export const toneFor = (pct) => (pct === null || pct === undefined ? '' : pct >= 70 ? 'good' : pct >= 50 ? 'warn' : 'bad');
+export const masteryLevel = (pct) => (pct >= 85 ? 'Mastered' : pct >= 70 ? 'Secure' : pct >= 50 ? 'Needs work' : 'Priority');
 
 export const bar = (value, max, tone = '') =>
   html`<progress class="bar ${tone}" max="${max || 1}" value="${value}"></progress>`;
@@ -35,10 +38,11 @@ export function ring(pct, caption = '') {
   </svg>`;
 }
 
-export const kpi = ({ label, value, unit, foot, footTone = '', iconName }) => html`
+// text: the value is a word or phrase (a topic name), shown smaller than a number.
+export const kpi = ({ label, value, unit, foot, footTone = '', iconName, text = false }) => html`
   <div class="card kpi">
     <div class="label">${iconName && icon(iconName)}${label}</div>
-    <div class="value">${value}${unit && html` <small>${unit}</small>`}</div>
+    <div class="value ${text ? 'text' : ''}" title="${text ? value : ''}">${value}${unit && html` <small>${unit}</small>`}</div>
     ${foot && html`<div class="foot ${footTone}">${foot}</div>`}
   </div>`;
 
@@ -86,3 +90,10 @@ export function staffStage(e) {
 }
 
 export const pct = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0);
+
+// A topic with its score: name and % on one line, a bar, and one quiet detail line.
+export const topicRow = (title, pctValue, detail = '') => html`<div class="topic-row">
+  <div class="row between"><b>${title}</b><span class="num ${toneFor(pctValue)}">${pctValue}%</span></div>
+  ${bar(pctValue, 100, toneFor(pctValue))}
+  ${detail && html`<div class="tiny muted">${detail}</div>`}
+</div>`;

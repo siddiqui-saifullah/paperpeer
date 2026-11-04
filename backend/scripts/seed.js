@@ -5,9 +5,8 @@ import { openDb, tx } from '../src/db/index.js';
 import { hashPassword, randomId } from '../src/lib/crypto.js';
 import { fileStore } from '../src/lib/storage.js';
 
-const { dataDir } = config;
 const db = await openDb(config);
-const store = fileStore(dataDir);
+const store = fileStore({ dataDir: config.dataDir, mode: config.storage, db, cloudinary: config.cloudinary });
 const PASSWORD = 'demo1234';
 
 function pdf(lines) {
@@ -35,7 +34,7 @@ function pdf(lines) {
 }
 
 async function addFile(schoolId, examId, submissionId, kind, name, lines) {
-  const f = store.saveBuffer(schoolId, pdf(lines), name);
+  const f = await store.saveBuffer(schoolId, pdf(lines), name);
   await db.prepare(
     `INSERT INTO files (id, school_id, exam_id, submission_id, kind, stored_name, original_name, mime, size)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,

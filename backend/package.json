@@ -11,10 +11,11 @@
     "dev": "node --watch src/server.js",
     "seed": "node scripts/seed.js",
     "db:reset": "node scripts/reset-db.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",
+    "@neondatabase/serverless": "^1.2.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "multer": "^2.0.2",

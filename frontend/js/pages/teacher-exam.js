@@ -137,7 +137,6 @@ export function staffExam(data, insights) {
       eyebrow: html`${exam.subject} · ${exam.className}`,
       title: exam.title,
       meta: html`${exam.examDate && metaItem('calendar', formatDate(exam.examDate))}${metaItem('target', `${exam.maxMarks} marks`)}${byQuestion && metaItem('layers', `${questions.length} questions`)}${metaItem(exam.anonymous ? 'lock' : 'eye', exam.anonymous ? 'Names hidden' : 'Names shown')}`,
-      actions: html`<button class="btn" type="button" data-tab="settings">${icon('settings')}Settings</button>`,
     })}
     <section class="card gap-below">
       ${pipeline(stageIndex(exam, step))}

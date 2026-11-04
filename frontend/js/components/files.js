@@ -6,8 +6,10 @@ import { icon } from './icons.js';
 
 // Redrawing a phone photo shrinks the upload and drops its metadata, including
 // GPS location, before a classmate could ever download it.
+// Large PNG or WEBP images (screenshots, scans) are turned into JPEGs too.
 async function preparePhoto(file) {
-  if (file.type !== 'image/jpeg') return file;
+  const bigImage = /^image\/(png|webp)$/.test(file.type) && file.size > 1.5 * 1024 * 1024;
+  if (file.type !== 'image/jpeg' && !bigImage) return file;
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
     const scale = Math.min(1, 2200 / Math.max(bitmap.width, bitmap.height));
@@ -17,7 +19,8 @@ async function preparePhoto(file) {
     canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
     bitmap.close();
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.85));
-    return blob ? new File([blob], file.name, { type: 'image/jpeg' }) : file;
+    const name = file.type === 'image/jpeg' ? file.name : file.name.replace(/\.\w+$/, '') + '.jpg';
+    return blob ? new File([blob], name, { type: 'image/jpeg' }) : file;
   } catch {
     return file;
   }
@@ -72,7 +75,7 @@ export const dropzone = (id, label) => html`
   <div class="upload" data-drop="${id}">
     <label class="drop">
       <input type="file" multiple accept="${ACCEPT}" />
-      ${icon('upload')}<b>${label}</b><span>Drag files here or click to browse · PDF, JPG, PNG up to 15 MB</span>
+      ${icon('upload')}<b>${label}</b><span>Drag files here or click to browse · PDF, JPG or PNG · photos are shrunk automatically</span>
     </label>
     <label class="btn camera">${icon('camera')}Take a photo<input class="sr-only" type="file" accept="image/*" capture="environment" /></label>
   </div>`;

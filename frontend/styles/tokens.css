@@ -12,6 +12,9 @@
   --line-strong: #d3d7df;
 
   --brand: #4f46e5;
+  /* Wordmark: Paper in blue, Peer in maroon. */
+  --wm-paper: #1d4ed8;
+  --wm-peer: #9f1239;
   --brand-hover: #4338ca;
   --brand-ink: #ffffff;
   --brand-soft: #eef0ff;
@@ -73,6 +76,8 @@
     --line: #242936;
     --line-strong: #323849;
     --brand: #7c7cf8;
+    --wm-paper: #60a5fa;
+    --wm-peer: #fb7185;
     --brand-hover: #9393fa;
     --brand-ink: #0c0e14;
     --brand-soft: #1e1f3d;
@@ -118,6 +123,8 @@
   --line: #242936;
   --line-strong: #323849;
   --brand: #7c7cf8;
+  --wm-paper: #60a5fa;
+  --wm-peer: #fb7185;
   --brand-hover: #9393fa;
   --brand-ink: #0c0e14;
   --brand-soft: #1e1f3d;

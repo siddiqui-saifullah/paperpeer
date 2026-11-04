@@ -1,5 +1,5 @@
 import { icon } from '../components/icons.js';
-import { avatar, barCell, callout, empty, kpi, mistakeTag, pageHeader, pct, pill, staffStage, subjectIcon, toneFor } from '../components/kit.js';
+import { MISTAKES, avatar, barCell, callout, empty, kpi, pageHeader, pct, pill, staffStage, subjectIcon, toneFor, topicRow } from '../components/kit.js';
 import { shell } from '../components/layout.js';
 import { html } from '../core/html.js';
 import { me } from '../core/session.js';
@@ -50,6 +50,8 @@ export function staffDashboard(exams, classes, insights) {
   const schoolAvg = averages.length ? Math.round(averages.reduce((n, e) => n + e.averagePct, 0) / averages.length) : null;
   const queue = exams.map((e) => ({ e, move: nextMove(e) })).filter((r) => r.move);
   const weakest = insights.topics.slice(0, 4);
+  // Exams already in the attention queue are not listed again under results.
+  const done = exams.filter((e) => !nextMove(e));
   const setupDone = classes.some((c) => c.students > 0) && exams.length > 0;
 
   shell('home', html`
@@ -64,7 +66,7 @@ export function staffDashboard(exams, classes, insights) {
       ${kpi({ label: 'Collecting answers', value: collecting.length, unit: collecting.length === 1 ? 'exam' : 'exams', foot: `${exams.length} exams in total`, iconName: 'inbox' })}
       ${kpi({ label: 'Waiting to be marked', value: toMark, unit: 'answers', foot: toMark ? 'Marking queue is open' : 'All caught up', footTone: toMark ? 'down' : 'up', iconName: 'pen' })}
       ${kpi({ label: 'Hand-in rate', value: expected ? `${pct(handedIn, expected)}%` : '–', foot: `${handedIn} of ${expected} answer sheets`, iconName: 'upload' })}
-      ${kpi({ label: 'Average score', value: schoolAvg === null ? '–' : `${schoolAvg}%`, foot: 'Across marked exams', footTone: schoolAvg === null ? '' : schoolAvg >= 60 ? 'up' : 'down', iconName: 'trend' })}
+      ${kpi({ label: 'Average score', value: schoolAvg === null ? '–' : `${schoolAvg}%`, foot: 'Across marked exams', footTone: { good: 'up', bad: 'down' }[toneFor(schoolAvg)] || '', iconName: 'trend' })}
     </div>
 
     <div class="grid main-side">
@@ -84,12 +86,12 @@ export function staffDashboard(exams, classes, insights) {
             : empty({ iconName: 'check', title: 'You’re all caught up', text: 'Every exam is marked and released.' })}
         </section>
 
-        <section class="card">
-          <div class="card-header"><div><h2>Recent exams</h2><p>Hand-in and marking progress</p></div><a class="btn sm ghost" href="#/exams">View all ${icon('arrow')}</a></div>
-          ${exams.length
+        ${(done.length > 0 || !exams.length) && html`<section class="card">
+          <div class="card-header"><div><h2>Latest results</h2><p>Marked and released</p></div><a class="btn sm ghost" href="#/exams">All exams ${icon('arrow')}</a></div>
+          ${done.length
             ? html`<div class="table-wrap"><table>
                 <thead><tr><th>Exam</th><th>Status</th><th class="hide-sm">Handed in</th><th class="right">Avg</th></tr></thead>
-                <tbody>${exams.slice(0, 5).map((e) => {
+                <tbody>${done.slice(0, 5).map((e) => {
                   const stage = staffStage(e);
                   return html`<tr>
                     <td><a class="cell-title" href="#/exams/${e.id}">${subjectIcon(e.subject)}<div><b>${e.title}</b><span>${e.className}</span></div></a></td>
@@ -100,7 +102,7 @@ export function staffDashboard(exams, classes, insights) {
                 })}</tbody>
               </table></div>`
             : empty({ iconName: 'exams', title: 'No exams yet', text: 'Create an exam and upload the question paper.', action: html`<a class="btn primary" href="#/exams/new">${icon('plus')}New exam</a>` })}
-        </section>
+        </section>`}
       </div>
 
       <div class="stack">
@@ -108,13 +110,10 @@ export function staffDashboard(exams, classes, insights) {
           <div class="card-header"><div><h2>Weakest topics</h2><p>From per-question marking</p></div>${icon('map')}</div>
           <div class="card-body">
             ${weakest.length
-              ? html`<div class="stack tight">${weakest.map((t) => {
+              ? html`<div class="stack">${weakest.map((t) => {
                   const top = Object.entries(t.mistakes).sort((a, b) => b[1] - a[1])[0];
-                  return html`<div>
-                    <div class="row between"><b class="small">${t.topic}</b><span class="small num">${t.masteryPct}%</span></div>
-                    ${barCell(t.masteryPct, 100, t.className, toneFor(t.masteryPct))}
-                    ${top && top[1] > 0 && html`<div class="tiny muted">Most common: ${mistakeTag(top[0])}</div>`}
-                  </div>`;
+                  const cause = top && top[1] > 0 ? ` · mostly ${MISTAKES[top[0]].label.toLowerCase()}s` : '';
+                  return topicRow(t.topic, t.masteryPct, `${t.className}${cause}`);
                 })}</div>
                 <a class="btn sm block gap-above" href="#/insights">See full Mistake Map</a>`
               : callout('brand', 'spark', 'Unlock topic insights', 'Split an exam into questions with topics, then mark by question.')}
