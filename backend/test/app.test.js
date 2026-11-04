@@ -123,7 +123,14 @@ let one, two;
 
 before(async () => {
   dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paperpeer-test-'));
-  db = await openDb({ dataDir, databaseUrl: process.env.TEST_DATABASE_URL, poolMax: Number(process.env.TEST_POOL_MAX || 5) });
+  db = await openDb({
+    dataDir,
+    databaseUrl: process.env.TEST_DATABASE_URL,
+    poolMax: Number(process.env.TEST_POOL_MAX || 5),
+    // TEST_DB_DRIVER=neon with NEON_FETCH_ENDPOINT / NEON_WS_PROXY runs through Neon's driver.
+    driver: process.env.TEST_DB_DRIVER,
+    neonLocal: process.env.NEON_FETCH_ENDPOINT ? { fetchEndpoint: process.env.NEON_FETCH_ENDPOINT, wsProxy: process.env.NEON_WS_PROXY } : undefined,
+  });
   if (storage === 'cloudinary') cloud = await startFakeCloudinary();
   const app = createApp({ db, dataDir, storage, cloudinary: cloud?.config });
   await new Promise((resolve) => {

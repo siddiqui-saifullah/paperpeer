@@ -22,6 +22,12 @@ export const config = {
   serverless,
   databaseUrl,
   poolMax: Number(process.env.DB_POOL_MAX || (serverless ? 1 : 10)),
+  // 'neon' or 'pg'. Default: Neon's serverless driver for neon.tech hosts.
+  driver: process.env.DB_DRIVER || undefined,
+  // Test only: send Neon driver traffic to local stand-ins for Neon's proxies.
+  neonLocal: process.env.NEON_FETCH_ENDPOINT
+    ? { fetchEndpoint: process.env.NEON_FETCH_ENDPOINT, wsProxy: process.env.NEON_WS_PROXY }
+    : undefined,
   // Where uploaded files go: 'cloudinary' (needs CLOUDINARY_URL), 'db' (Postgres)
   // or 'disk' (dataDir). Shared storage is the default whenever it is set up,
   // so every machine using the same database sees the same files.

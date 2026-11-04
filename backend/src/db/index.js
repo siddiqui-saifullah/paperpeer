@@ -13,7 +13,23 @@ const toPostgres = (sql) => {
 };
 const cleanParam = (value) => (typeof value === 'string' ? value.replaceAll('\0', '') : value);
 
-// A hosted server such as Neon, reached over the network.
+// BEGIN … COMMIT on one connection from a pg-compatible pool.
+async function poolTransaction(pool, fn) {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+// Any Postgres server reached over TCP.
 async function serverDriver(databaseUrl, poolMax) {
   const { default: pg } = await import('pg');
   const pool = new pg.Pool({ connectionString: databaseUrl, max: poolMax });
@@ -22,23 +38,47 @@ async function serverDriver(databaseUrl, poolMax) {
   pool.on('error', (err) => console.error('Database connection lost:', err.message));
   return {
     query: (sql, params) => pool.query(sql, params),
-    async transaction(fn) {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-        const result = await fn(client);
-        await client.query('COMMIT');
-        return result;
-      } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
-        throw err;
-      } finally {
-        client.release();
-      }
-    },
+    transaction: (fn) => poolTransaction(pool, fn),
     close: () => pool.end(),
   };
 }
+
+// Neon's serverless driver. Single queries go over HTTPS, one request each,
+// with no connection to open first: that is what makes cold starts fast.
+// Transactions and multi-statement SQL need one session, so they use a
+// WebSocket pool, opened only when first needed.
+async function neonDriver(databaseUrl, poolMax, local) {
+  const { neon, neonConfig, Pool } = await import('@neondatabase/serverless');
+  if (local) {
+    // Only for testing against a local stand-in for Neon's proxies.
+    neonConfig.fetchEndpoint = local.fetchEndpoint;
+    neonConfig.wsProxy = () => local.wsProxy;
+    neonConfig.useSecureWebSocket = false;
+    neonConfig.pipelineConnect = false;
+  }
+  const sql = neon(databaseUrl, { fullResults: true });
+  let pool;
+  const sessionPool = () => {
+    if (!pool) {
+      pool = new Pool({ connectionString: databaseUrl, max: poolMax });
+      pool.on('error', (err) => console.error('Database connection lost:', err.message));
+    }
+    return pool;
+  };
+  return {
+    query: (text, params) => (params ? sql.query(text, params) : sessionPool().query(text)),
+    transaction: (fn) => poolTransaction(sessionPool(), fn),
+    close: async () => pool?.end(),
+  };
+}
+
+const isNeon = (databaseUrl) => {
+  try {
+    return new URL(databaseUrl).hostname.endsWith('.neon.tech');
+  } catch {
+    return false;
+  }
+};
 
 const isRunning = (pid) => {
   try {
@@ -94,8 +134,14 @@ async function embeddedDriver(dataDir) {
   };
 }
 
-export async function openDb({ databaseUrl, dataDir, poolMax = 10 }) {
-  const driver = databaseUrl ? await serverDriver(databaseUrl, poolMax) : await embeddedDriver(dataDir);
+// driver: 'neon' or 'pg'. Default: Neon's driver for neon.tech hosts, pg otherwise.
+export async function openDb({ databaseUrl, dataDir, poolMax = 10, driver: driverName, neonLocal }) {
+  const useNeon = driverName ? driverName === 'neon' : isNeon(databaseUrl);
+  const driver = !databaseUrl
+    ? await embeddedDriver(dataDir)
+    : useNeon
+      ? await neonDriver(databaseUrl, poolMax, neonLocal)
+      : await serverDriver(databaseUrl, poolMax);
   // Inside tx(), every query must use that transaction's connection.
   const activeTx = new AsyncLocalStorage();
 
@@ -130,6 +176,10 @@ export const tx = (db, fn) => db.transaction(fn);
 const MIGRATION_LOCK = 72_411_903;
 async function migrate(db) {
   const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith('.sql')).sort();
+  // Usual case on a cold start: everything is applied. One plain query checks
+  // that, so no transaction (or Neon WebSocket) is opened just to find out.
+  const applied = await db.prepare('SELECT name FROM schema_migrations').all().catch(() => null);
+  if (applied && files.every((f) => applied.some((r) => r.name === f))) return;
   await tx(db, async () => {
     await db.prepare('SELECT pg_advisory_xact_lock(?)').get(MIGRATION_LOCK);
     await db.exec('CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())');

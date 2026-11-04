@@ -143,7 +143,7 @@ browser ─▶ paperpeer (frontend, static)
 
 The frontend forwards `/api/*` to the backend, so the browser sees one site: login cookies and the security policy work without CORS.
 
-**1. Database.** Create a free project at [neon.tech](https://neon.tech). Copy the **pooled** connection string (its host contains `-pooler`).
+**1. Database.** Create a free project at [neon.tech](https://neon.tech) in **AWS Asia Pacific (Singapore)**. The backend function is pinned to Vercel's Singapore region (`sin1` in `backend/vercel.json`), so every query stays inside one city. If you pick another Neon region, change `regions` to match. Copy the **pooled** connection string (its host contains `-pooler`).
 
 **2. File storage.** Create a free account at [cloudinary.com](https://cloudinary.com). On the dashboard, copy the **API environment variable**: it looks like `cloudinary://<key>:<secret>@<cloud_name>`. Files are uploaded as private assets: nobody can open one from a link; the backend fetches it only after checking the viewer may see it.
 
@@ -163,6 +163,8 @@ The frontend forwards `/api/*` to the backend, so the browser sees one site: log
 
 Pushing to the repository redeploys both projects.
 
+**Speed.** For `neon.tech` addresses the backend uses Neon's serverless driver: each ordinary query is a single HTTPS request with no connection to set up, which keeps cold starts short. Transactions use a WebSocket connection, opened only when one is needed. A cold start on an up-to-date database costs one query (the migration check). Set `DB_DRIVER=pg` to use a plain TCP connection instead.
+
 **Limits on the free setup.** Each upload request must be under 4.5 MB, so the app sends files in batches and refuses single files over 4 MB (phone photos are shrunk first, so this mostly affects large PDFs). Cloudinary's free plan has about 25 GB of storage and bandwidth combined per month; Neon's 0.5 GB then only holds data, which is plenty. The first request after a quiet spell takes a second or two while Vercel and Neon wake up.
 
 ## Going live
@@ -177,6 +179,7 @@ Set these environment variables:
 | `FRONTEND_PORT` | Port of the separate frontend server. Default `5173`. |
 | `BACKEND_URL` | Where that frontend server finds the backend. Default `http://127.0.0.1:3000`. |
 | `DATABASE_URL` | Postgres connection string. Required for a live deployment. |
+| `DB_DRIVER` | `neon` (HTTP + WebSocket) or `pg` (TCP). Default: `neon` for `neon.tech` hosts, `pg` otherwise. |
 | `DB_POOL_MAX` | Database connections per server process. Default `10`. |
 | `DATA_DIR` | Where uploads live, plus the embedded database if `DATABASE_URL` is empty. Default `./data`. |
 | `CLOUDINARY_URL` | `cloudinary://<key>:<secret>@<cloud_name>`. When set, uploaded files go to Cloudinary as private files. |
