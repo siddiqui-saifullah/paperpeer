@@ -19,15 +19,17 @@ svg[aria-hidden] { width: 1.1em; height: 1.1em; vertical-align: -0.17em; flex: n
   overflow-y: auto;
   z-index: 30;
 }
-.sb-brand { display: flex; align-items: center; gap: 9px; padding: 4px 6px; color: var(--ink); font-weight: 650; font-size: 1rem; letter-spacing: -0.02em; }
+.sb-brand { display: flex; align-items: center; gap: 10px; padding: 4px 6px; color: var(--ink); }
 .sb-brand:hover { text-decoration: none; }
-.wm-paper { color: var(--wm-paper); }
-.wm-peer { color: var(--wm-peer); }
-/* The sign-in panel is always dark, so it uses the dark-theme shades. */
-.auth-art .wm-paper { color: #60a5fa; }
-.auth-art .wm-peer { color: #fb7185; }
-.logo { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, #6366f1, #8b5cf6 55%, #ec4899); color: #fff; }
-.logo svg { width: 16px; height: 16px; }
+/* More specific than the global svg[aria-hidden] icon size. */
+svg.logo-mark { width: 28px; height: 28px; flex: none; border-radius: 7px; box-shadow: 0 1px 2px rgb(59 47 201 / 25%), 0 4px 10px -4px rgb(59 47 201 / 45%); }
+/* One name, one accent: Paper in the text colour, Peer in brand indigo. */
+.wordmark { font-size: 1.06rem; font-weight: 750; letter-spacing: -0.035em; line-height: 1; }
+.wm-paper { color: var(--ink); }
+.wm-peer { color: var(--brand); }
+/* The sign-in panel is always dark. */
+.auth-art .wm-paper { color: #fff; }
+.auth-art .wm-peer { color: #a5b4fc; }
 
 .workspace {
   display: flex;
