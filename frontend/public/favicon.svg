@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="5" y="2" width="22" height="28" rx="3" fill="#1f3a5f"/><path d="M10 10h12M10 15h12M10 20h7" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="m18 22 3 3 6-8" fill="none" stroke="#e5484d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="pp-bg" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5b5cf0"/>
+      <stop offset="1" stop-color="#3b2fc9"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#pp-bg)"/>
+  <!-- a classmate's sheet behind -->
+  <rect x="23" y="11" width="26" height="33" rx="4.5" fill="#fff" fill-opacity=".42" transform="rotate(8 36 27.5)"/>
+  <!-- your sheet in front -->
+  <rect x="14" y="17" width="26" height="34" rx="4.5" fill="#fff"/>
+  <path d="M20 27h14M20 33.5h9" stroke="#4f46e5" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- the peer who got it right -->
+  <circle cx="42" cy="44" r="10.5" fill="#10b981" stroke="#4338ca" stroke-width="3"/>
+  <path d="m37.6 44.2 3.2 3.2 5.7-6.6" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
