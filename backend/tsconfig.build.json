@@ -1,0 +1,6 @@
+{
+  // Compiles the app for Vercel and `npm start`: dist/src, dist/scripts.
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "noEmit": false, "outDir": "dist", "rootDir": "." },
+  "include": ["src", "scripts"]
+}

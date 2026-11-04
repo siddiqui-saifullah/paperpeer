@@ -1,3 +1,0 @@
-# Only the static app is published; server.js is the local dev server.
-server.js
-package.json

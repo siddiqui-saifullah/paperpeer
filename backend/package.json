@@ -7,11 +7,13 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "seed": "node scripts/seed.js",
-    "db:reset": "node scripts/reset-db.js",
-    "test": "node --test test/*.test.js"
+    "dev": "tsx watch src/server.ts",
+    "start": "node dist/src/server.js",
+    "build": "tsc -p tsconfig.build.json && node dist/scripts/copy-migrations.js",
+    "typecheck": "tsc -p .",
+    "seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/reset-db.ts",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.13",
@@ -20,5 +22,13 @@
     "helmet": "^8.1.0",
     "multer": "^2.0.2",
     "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.3.0",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
