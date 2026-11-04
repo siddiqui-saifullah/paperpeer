@@ -412,21 +412,54 @@ test('repeated failed logins are blocked', async () => {
   assert.equal((await attempt()).status, 429);
 });
 
+// Whether a file's bytes are still in storage, whichever storage the suite uses.
+async function isStored(row) {
+  if (storage === 'cloudinary') return cloud.files.has(`paperpeer/${row.school_id}/${row.stored_name}`);
+  if (storage === 'db') return Boolean(await db.prepare('SELECT 1 FROM file_blobs WHERE stored_name = ?').get(row.stored_name));
+  return fs.existsSync(path.join(dataDir, 'uploads', String(row.school_id), row.stored_name));
+}
+const fileRows = (examId) => db.prepare('SELECT id, stored_name, school_id FROM files WHERE exam_id = ? ORDER BY original_name').all(examId);
+
 test('deleting an exam removes its stored files', async () => {
   const examId = await createExam(two, { title: 'To delete' });
   await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'paper.pdf', PDF);
-  const row = await db.prepare('SELECT id, stored_name, school_id FROM files WHERE exam_id = ?').get(examId);
-  const file = path.join(dataDir, 'uploads', String(row.school_id), row.stored_name);
-  const stored = async () => {
-    if (storage === 'cloudinary') return cloud.files.has(`paperpeer/${row.school_id}/${row.stored_name}`);
-    if (storage === 'db') return Boolean(await db.prepare('SELECT 1 FROM file_blobs WHERE stored_name = ?').get(row.stored_name));
-    return fs.existsSync(file);
-  };
-  assert.ok(await stored());
+  const [row] = await fileRows(examId);
+  assert.ok(await isStored(row));
   const served = await two.teacher.get(`/api/files/${row.id}`);
   assert.equal(served.status, 200, 'the stored file is served back');
   assert.equal((await two.teacher.delete(`/api/exams/${examId}`)).status, 200);
-  assert.ok(!(await stored()));
+  assert.ok(!(await isStored(row)));
+});
+
+test('deleting one file removes its bytes from storage', async () => {
+  const examId = await createExam(two, { title: 'Delete one' });
+  await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'a.pdf', PDF);
+  await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'b.pdf', PDF);
+  const [a, b] = await fileRows(examId);
+  assert.equal((await two.teacher.delete(`/api/files/${a.id}`)).status, 200);
+  assert.ok(!(await isStored(a)), 'deleted file is gone from storage');
+  assert.ok(await isStored(b), 'the other file is untouched');
+  assert.equal((await two.teacher.get(`/api/files/${a.id}`)).status, 404);
+});
+
+test('a delete that storage refuses is retried until it succeeds', { skip: storage !== 'cloudinary' && 'needs TEST_STORAGE=cloudinary' }, async () => {
+  const examId = await createExam(two, { title: 'Outage' });
+  await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'a.pdf', PDF);
+  await two.teacher.upload(`/api/exams/${examId}/files?kind=paper`, 'b.pdf', PDF);
+  const [a, b] = await fileRows(examId);
+  const pending = async () => Number((await db.prepare('SELECT count(*) AS n FROM pending_file_deletions').get()).n);
+
+  cloud.state.failDestroy = true;
+  assert.equal((await two.teacher.delete(`/api/files/${a.id}`)).status, 200, 'the user still sees the file deleted');
+  assert.equal((await two.teacher.get(`/api/files/${a.id}`)).status, 404);
+  assert.ok(await isStored(a), 'Cloudinary was down, so the bytes are still there');
+  assert.equal(await pending(), 1, 'and the deletion is queued');
+
+  cloud.state.failDestroy = false;
+  assert.equal((await two.teacher.delete(`/api/files/${b.id}`)).status, 200);
+  assert.ok(!(await isStored(b)));
+  assert.ok(!(await isStored(a)), 'the queued deletion was retried');
+  assert.equal(await pending(), 0);
 });
 
 test('question scoring feeds the mistake map, skills and peer bridge without leaking names', async () => {

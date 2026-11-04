@@ -15,6 +15,7 @@ function validSignature(params) {
 
 export async function startFakeCloudinary() {
   const files = new Map(); // public_id -> Buffer
+  const state = { failDestroy: false }; // set to simulate Cloudinary being unreachable
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
     const reply = (status, body) => {
@@ -42,6 +43,7 @@ export async function startFakeCloudinary() {
       return data ? reply(200, data) : reply(404, '{"error":{"message":"not found"}}');
     }
     if (action === 'destroy' && req.method === 'POST') {
+      if (state.failDestroy) return reply(500, '{"error":{"message":"simulated outage"}}');
       files.delete(params.public_id);
       return reply(200, '{"result":"ok"}');
     }
@@ -50,6 +52,7 @@ export async function startFakeCloudinary() {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   return {
     files,
+    state,
     config: {
       url: `cloudinary://${FAKE.apiKey}:${FAKE.apiSecret}@${FAKE.cloudName}`,
       apiBase: `http://127.0.0.1:${server.address().port}`,

@@ -62,9 +62,8 @@ function cloudinaryBackend({ url, apiBase }) {
   return {
     write: (schoolId, storedName, buffer) => client.upload(publicId(schoolId, storedName), buffer),
     read: (schoolId, storedName) => client.download(publicId(schoolId, storedName)),
-    // A failed delete leaves an orphan in Cloudinary, never a broken page.
-    remove: (schoolId, storedName) =>
-      client.destroy(publicId(schoolId, storedName)).catch((err) => console.error(err.message)),
+    // Throws when Cloudinary cannot be reached; fileStore queues a retry.
+    remove: (schoolId, storedName) => client.destroy(publicId(schoolId, storedName)),
   };
 }
 
@@ -85,6 +84,36 @@ export function fileStore({ dataDir, mode = 'disk', db, cloudinary, maxFileMb = 
   }).array('files', MAX_FILES_PER_UPLOAD);
 
   const removeTmp = (p) => fs.promises.unlink(p).catch(() => {});
+
+  async function removeOrQueue(schoolId, storedName) {
+    try {
+      await backend.remove(schoolId, storedName);
+      return true;
+    } catch (err) {
+      console.error(`Could not delete stored file ${storedName}; will retry:`, err.message);
+      await db?.prepare(
+        `INSERT INTO pending_file_deletions (stored_name, school_id, last_error) VALUES (?, ?, ?)
+         ON CONFLICT (stored_name) DO UPDATE SET attempts = pending_file_deletions.attempts + 1, last_error = EXCLUDED.last_error`,
+      ).run(storedName, schoolId, String(err.message).slice(0, 500)).catch(() => {});
+      return false;
+    }
+  }
+
+  // Retries queued deletions, oldest first. Returns how many are still waiting.
+  async function retryPending(limit = 10) {
+    if (!db) return 0;
+    const due = await db.prepare('SELECT school_id, stored_name FROM pending_file_deletions ORDER BY created_at LIMIT ?').all(limit);
+    for (const row of due) {
+      try {
+        await backend.remove(row.school_id, row.stored_name);
+        await db.prepare('DELETE FROM pending_file_deletions WHERE stored_name = ?').run(row.stored_name);
+      } catch (err) {
+        await db.prepare('UPDATE pending_file_deletions SET attempts = attempts + 1, last_error = ? WHERE stored_name = ?')
+          .run(String(err.message).slice(0, 500), row.stored_name);
+      }
+    }
+    return Number((await db.prepare('SELECT count(*) AS n FROM pending_file_deletions').get()).n);
+  }
 
   const keep = async (schoolId, buffer, type, originalName) => {
     const fileId = randomId();
@@ -163,6 +192,13 @@ export function fileStore({ dataDir, mode = 'disk', db, cloudinary, maxFileMb = 
     // The file's bytes, or null when they are gone.
     read: (schoolId, storedName) => backend.read(schoolId, storedName),
 
-    delete: (schoolId, storedName) => backend.remove(schoolId, storedName),
+    // Called after the file's rows are gone. If storage cannot delete the bytes
+    // right now, the file is queued and retried on later deletes, so a deleted
+    // answer sheet never stays in storage for good.
+    async delete(schoolId, storedName) {
+      if (await removeOrQueue(schoolId, storedName)) await retryPending().catch(() => {});
+    },
+
+    retryPending,
   };
 }

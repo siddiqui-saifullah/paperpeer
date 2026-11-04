@@ -145,7 +145,7 @@ The frontend forwards `/api/*` to the backend, so the browser sees one site: log
 
 **1. Database.** Create a free project at [neon.tech](https://neon.tech) in **AWS Asia Pacific (Singapore)**. The backend function is pinned to Vercel's Singapore region (`sin1` in `backend/vercel.json`), so every query stays inside one city. If you pick another Neon region, change `regions` to match. Copy the **pooled** connection string (its host contains `-pooler`).
 
-**2. File storage.** Create a free account at [cloudinary.com](https://cloudinary.com). On the dashboard, copy the **API environment variable**: it looks like `cloudinary://<key>:<secret>@<cloud_name>`. Files are uploaded as private assets: nobody can open one from a link; the backend fetches it only after checking the viewer may see it.
+**2. File storage.** Create a free account at [cloudinary.com](https://cloudinary.com). On the dashboard, copy the **API environment variable**: it looks like `cloudinary://<key>:<secret>@<cloud_name>`. Files are uploaded as private assets: nobody can open one from a link; the backend fetches it only after checking the viewer may see it. Deleting a file, an answer or an exam in the app deletes the files from Cloudinary too; if Cloudinary cannot be reached at that moment, the deletion is queued (`pending_file_deletions`) and retried on later deletes. Leave Cloudinary's optional *Backups* setting off, or it keeps copies of deleted files.
 
 **3. Backend project.** On Vercel: *Add New → Project*, import this repository.
 - Project name: `paperpeer-api`
